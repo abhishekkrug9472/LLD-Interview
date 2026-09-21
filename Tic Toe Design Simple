@@ -1,0 +1,637 @@
+import java.util.Scanner;
+
+// ============================================================
+// 1. SYMBOL
+// ============================================================
+
+enum Symbol {
+    X, O, EMPTY
+}
+
+
+// ============================================================
+// 2. POSITION
+// ============================================================
+
+class Position {
+    int row;
+    int col;
+
+    Position(int row, int col) {
+        this.row = row;
+        this.col = col;
+    }
+}
+
+
+// ============================================================
+// 3. PLAYER STRATEGY
+//    Strategy Pattern
+// ============================================================
+
+interface PlayerStrategy {
+    Position makeMove(Board board);
+}
+
+
+// ============================================================
+// 4. HUMAN PLAYER STRATEGY
+// ============================================================
+
+class HumanPlayerStrategy implements PlayerStrategy {
+
+    private Scanner scanner = new Scanner(System.in);
+    private String playerName;
+
+    HumanPlayerStrategy(String playerName) {
+        this.playerName = playerName;
+    }
+
+    @Override
+    public Position makeMove(Board board) {
+
+        while (true) {
+
+            System.out.print(
+                playerName + " enter row and column: "
+            );
+
+            int row = scanner.nextInt();
+            int col = scanner.nextInt();
+
+            Position position = new Position(row, col);
+
+            if (board.isValidMove(position)) {
+                return position;
+            }
+
+            System.out.println("Invalid move. Try again.");
+        }
+    }
+}
+
+
+// ============================================================
+// 5. PLAYER
+// ============================================================
+
+class Player {
+
+    private Symbol symbol;
+    private PlayerStrategy strategy;
+
+    Player(Symbol symbol, PlayerStrategy strategy) {
+        this.symbol = symbol;
+        this.strategy = strategy;
+    }
+
+    public Symbol getSymbol() {
+        return symbol;
+    }
+
+    public PlayerStrategy getStrategy() {
+        return strategy;
+    }
+}
+
+
+// ============================================================
+// 6. GAME STATE
+//    State Pattern
+// ============================================================
+
+interface GameState {
+
+    void next(GameContext context,
+              Player player,
+              boolean hasWon,
+              boolean isDraw);
+
+    boolean isGameOver();
+}
+
+
+// ============================================================
+// 7. GAME CONTEXT
+// ============================================================
+
+class GameContext {
+
+    private GameState currentState;
+
+    GameContext() {
+        currentState = new XTurnState();
+    }
+
+    public void next(Player player,
+                     boolean hasWon,
+                     boolean isDraw) {
+
+        currentState.next(
+            this,
+            player,
+            hasWon,
+            isDraw
+        );
+    }
+
+    public void setState(GameState state) {
+        currentState = state;
+    }
+
+    public boolean isGameOver() {
+        return currentState.isGameOver();
+    }
+
+    public GameState getState() {
+        return currentState;
+    }
+}
+
+
+// ============================================================
+// 8. X TURN STATE
+// ============================================================
+
+class XTurnState implements GameState {
+
+    @Override
+    public void next(GameContext context,
+                     Player player,
+                     boolean hasWon,
+                     boolean isDraw) {
+
+        if (hasWon) {
+
+            if (player.getSymbol() == Symbol.X)
+                context.setState(new XWonState());
+            else
+                context.setState(new OWonState());
+
+        } else if (isDraw) {
+
+            context.setState(new DrawState());
+
+        } else {
+
+            context.setState(new OTurnState());
+        }
+    }
+
+    @Override
+    public boolean isGameOver() {
+        return false;
+    }
+}
+
+
+// ============================================================
+// 9. O TURN STATE
+// ============================================================
+
+class OTurnState implements GameState {
+
+    @Override
+    public void next(GameContext context,
+                     Player player,
+                     boolean hasWon,
+                     boolean isDraw) {
+
+        if (hasWon) {
+
+            if (player.getSymbol() == Symbol.X)
+                context.setState(new XWonState());
+            else
+                context.setState(new OWonState());
+
+        } else if (isDraw) {
+
+            context.setState(new DrawState());
+
+        } else {
+
+            context.setState(new XTurnState());
+        }
+    }
+
+    @Override
+    public boolean isGameOver() {
+        return false;
+    }
+}
+
+
+// ============================================================
+// 10. X WON STATE
+// ============================================================
+
+class XWonState implements GameState {
+
+    @Override
+    public void next(GameContext context,
+                     Player player,
+                     boolean hasWon,
+                     boolean isDraw) {
+        // Game over
+    }
+
+    @Override
+    public boolean isGameOver() {
+        return true;
+    }
+}
+
+
+// ============================================================
+// 11. O WON STATE
+// ============================================================
+
+class OWonState implements GameState {
+
+    @Override
+    public void next(GameContext context,
+                     Player player,
+                     boolean hasWon,
+                     boolean isDraw) {
+        // Game over
+    }
+
+    @Override
+    public boolean isGameOver() {
+        return true;
+    }
+}
+
+
+// ============================================================
+// 12. DRAW STATE
+// ============================================================
+
+class DrawState implements GameState {
+
+    @Override
+    public void next(GameContext context,
+                     Player player,
+                     boolean hasWon,
+                     boolean isDraw) {
+        // Game over
+    }
+
+    @Override
+    public boolean isGameOver() {
+        return true;
+    }
+}
+
+
+// ============================================================
+// 13. BOARD
+// ============================================================
+
+class Board {
+
+    private int rows;
+    private int columns;
+
+    private Symbol[][] grid;
+
+    Board(int rows, int columns) {
+
+        this.rows = rows;
+        this.columns = columns;
+
+        grid = new Symbol[rows][columns];
+
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < columns; j++) {
+                grid[i][j] = Symbol.EMPTY;
+            }
+        }
+    }
+
+
+    // --------------------------------------------------------
+    // Check whether move is valid
+    // --------------------------------------------------------
+
+    public boolean isValidMove(Position position) {
+
+        return position.row >= 0
+                && position.row < rows
+                && position.col >= 0
+                && position.col < columns
+                && grid[position.row][position.col] == Symbol.EMPTY;
+    }
+
+
+    // --------------------------------------------------------
+    // Put X / O on board
+    // --------------------------------------------------------
+
+    public void makeMove(Position position, Symbol symbol) {
+
+        grid[position.row][position.col] = symbol;
+    }
+
+
+    // --------------------------------------------------------
+    // Check winner
+    // --------------------------------------------------------
+
+    public boolean hasWinner() {
+
+        // Check rows
+        for (int i = 0; i < rows; i++) {
+
+            if (grid[i][0] != Symbol.EMPTY) {
+
+                boolean same = true;
+
+                for (int j = 1; j < columns; j++) {
+
+                    if (grid[i][j] != grid[i][0]) {
+                        same = false;
+                        break;
+                    }
+                }
+
+                if (same)
+                    return true;
+            }
+        }
+
+
+        // Check columns
+        for (int j = 0; j < columns; j++) {
+
+            if (grid[0][j] != Symbol.EMPTY) {
+
+                boolean same = true;
+
+                for (int i = 1; i < rows; i++) {
+
+                    if (grid[i][j] != grid[0][j]) {
+                        same = false;
+                        break;
+                    }
+                }
+
+                if (same)
+                    return true;
+            }
+        }
+
+
+        // Main diagonal
+        if (grid[0][0] != Symbol.EMPTY) {
+
+            boolean same = true;
+
+            for (int i = 1; i < rows; i++) {
+
+                if (grid[i][i] != grid[0][0]) {
+                    same = false;
+                    break;
+                }
+            }
+
+            if (same)
+                return true;
+        }
+
+
+        // Other diagonal
+        if (grid[0][columns - 1] != Symbol.EMPTY) {
+
+            boolean same = true;
+
+            for (int i = 1; i < rows; i++) {
+
+                if (grid[i][columns - 1 - i]
+                        != grid[0][columns - 1]) {
+
+                    same = false;
+                    break;
+                }
+            }
+
+            if (same)
+                return true;
+        }
+
+        return false;
+    }
+
+
+    // --------------------------------------------------------
+    // Check draw
+    // --------------------------------------------------------
+
+    public boolean isFull() {
+
+        for (int i = 0; i < rows; i++) {
+
+            for (int j = 0; j < columns; j++) {
+
+                if (grid[i][j] == Symbol.EMPTY)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+
+    // --------------------------------------------------------
+    // Print board
+    // --------------------------------------------------------
+
+    public void printBoard() {
+
+        for (int i = 0; i < rows; i++) {
+
+            for (int j = 0; j < columns; j++) {
+
+                if (grid[i][j] == Symbol.X)
+                    System.out.print(" X ");
+
+                else if (grid[i][j] == Symbol.O)
+                    System.out.print(" O ");
+
+                else
+                    System.out.print(" . ");
+
+                if (j < columns - 1)
+                    System.out.print("|");
+            }
+
+            System.out.println();
+
+            if (i < rows - 1)
+                System.out.println("---+---+---");
+        }
+
+        System.out.println();
+    }
+}
+
+
+// ============================================================
+// 14. TIC TAC TOE GAME
+// ============================================================
+
+class TicTacToeGame {
+
+    private Board board;
+
+    private Player playerX;
+    private Player playerO;
+
+    private Player currentPlayer;
+
+    private GameContext gameContext;
+
+
+    TicTacToeGame(PlayerStrategy xStrategy,
+                  PlayerStrategy oStrategy,
+                  int rows,
+                  int columns) {
+
+        board = new Board(rows, columns);
+
+        playerX = new Player(
+            Symbol.X,
+            xStrategy
+        );
+
+        playerO = new Player(
+            Symbol.O,
+            oStrategy
+        );
+
+        currentPlayer = playerX;
+
+        gameContext = new GameContext();
+    }
+
+
+    // --------------------------------------------------------
+    // MAIN GAME FLOW
+    // --------------------------------------------------------
+
+    public void play() {
+
+        while (!gameContext.isGameOver()) {
+
+            // 1. Show board
+            board.printBoard();
+
+
+            // 2. Current player makes move
+            Position move =
+                currentPlayer
+                    .getStrategy()
+                    .makeMove(board);
+
+
+            // 3. Put move on board
+            board.makeMove(
+                move,
+                currentPlayer.getSymbol()
+            );
+
+
+            // 4. Check game result
+            boolean hasWon =
+                board.hasWinner();
+
+            boolean isDraw =
+                !hasWon && board.isFull();
+
+
+            // 5. Update State
+            gameContext.next(
+                currentPlayer,
+                hasWon,
+                isDraw
+            );
+
+
+            // 6. Switch player
+            if (!gameContext.isGameOver()) {
+                switchPlayer();
+            }
+        }
+
+
+        // Final board
+        board.printBoard();
+
+        announceResult();
+    }
+
+
+    // --------------------------------------------------------
+    // Switch X <-> O
+    // --------------------------------------------------------
+
+    private void switchPlayer() {
+
+        if (currentPlayer == playerX)
+            currentPlayer = playerO;
+        else
+            currentPlayer = playerX;
+    }
+
+
+    // --------------------------------------------------------
+    // Announce result
+    // --------------------------------------------------------
+
+    private void announceResult() {
+
+        if (gameContext.getState()
+                instanceof XWonState) {
+
+            System.out.println("Player X wins!");
+
+        } else if (gameContext.getState()
+                instanceof OWonState) {
+
+            System.out.println("Player O wins!");
+
+        } else {
+
+            System.out.println("It's a draw!");
+        }
+    }
+}
+
+
+// ============================================================
+// 15. MAIN
+// ============================================================
+
+public class Main {
+
+    public static void main(String[] args) {
+
+        PlayerStrategy xStrategy =
+            new HumanPlayerStrategy("Player X");
+
+        PlayerStrategy oStrategy =
+            new HumanPlayerStrategy("Player O");
+
+
+        TicTacToeGame game =
+            new TicTacToeGame(
+                xStrategy,
+                oStrategy,
+                3,
+                3
+            );
+
+
+        game.play();
+    }
+}
